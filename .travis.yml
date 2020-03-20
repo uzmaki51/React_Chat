@@ -1,0 +1,24 @@
+language: node_js
+node_js:
+  - '10.13.0'
+os:
+  - linux
+dist: trusty
+before_install:
+  - npm install -g yarn@1.17.3
+install:
+  - yarn install --frozen-lockfile
+script:
+  - yarn generate
+  - yarn lint
+  - yarn lint-deps
+  - yarn test-node
+  - yarn prepare-beta-build
+  - $(yarn bin)/build --config.extraMetadata.environment=$SIGNAL_ENV --config.mac.bundleVersion='$TRAVIS_BUILD_NUMBER' --publish=never --config.directories.output=release
+  - ./travis.sh
+env:
+  global:
+    - SIGNAL_ENV: production
+sudo: false
+notifications:
+  email: false
