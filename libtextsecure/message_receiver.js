@@ -117,7 +117,6 @@ _utilWorker.onmessage = e => {
 
 function MessageReceiver(username, password, signalingKey, options = {}) {
   this.count = 0;
-
   this.signalingKey = signalingKey;
   this.username = username;
   this.password = password;
@@ -968,8 +967,65 @@ MessageReceiver.prototype.extend({
     this.removeFromCache(envelope);
     throw new Error('Unsupported content message');
   },
-  handleCallMessage(envelope) {
+  handleCallMessage(envelope, callmessage) {
     window.log.info('call message from', this.getEnvelopeId(envelope));
+
+    const username = this.username;
+    const password = this.password;
+    const recipientId = envelope.source;
+    const sender = new MessageSender(username, password);
+
+    if (callmessage.offer != null) {
+      //get offer from caller
+      window.callid = callmessage.offer['id'];
+      sender.createCall({
+        recipientId : recipientId, 
+        groupId: 0,
+        groupNumbers: 0,
+        callType: 'offer',
+        timestamp: Date.now()
+      }, {}, callmessage);
+    } else if (callmessage.answer != null) {
+      //get answer from calee
+      sender.createCall({
+        recipientId : recipientId, 
+        groupId: 0,
+        groupNumbers: 0,
+        callType: 'answer',
+        timestamp: Date.now()
+      }, {}, callmessage);
+    } else if (callmessage.iceUpdate != null && callmessage.iceUpdate.length > 0) {
+      //get icecadidate from caller or calee
+      sender.createCall({
+        recipientId : recipientId, 
+        groupId: 0,
+        groupNumbers: 0,
+        callType: 'iceupdate',
+        timestamp: Date.now()
+      }, {}, callmessage);
+    } else if(callmessage.busy != null) {
+      sender.createCall({
+        recipientId : recipientId, 
+        groupId: 0,
+        groupNumbers: 0,
+        callType: 'busy',
+        timestamp: Date.now()
+      }, {}, callmessage);
+    } else if(callmessage.hangup != null) {
+      //get hangup message from calee
+      sender.createCall({
+        recipientId : recipientId, 
+        groupId: 0,
+        groupNumbers: 0,
+        callType: 'remotehangup',
+        timestamp: Date.now()
+      }, {}, callmessage);
+      console.log("hangup");
+    } else {
+      console.log("else");
+    }
+
+    //test code --uzmaki--end
     this.removeFromCache(envelope);
   },
   handleReceiptMessage(envelope, receiptMessage) {

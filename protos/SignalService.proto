@@ -38,7 +38,7 @@ message Content {
 message CallMessage {
   message Offer {
     optional uint64 id          = 1;
-    optional string description = 2;
+    optional string sdp         = 2;
   }
 
   message Answer {
@@ -51,6 +51,7 @@ message CallMessage {
     optional string sdpMid        = 2;
     optional uint32 sdpMLineIndex = 3;
     optional string sdp           = 4;
+    optional string candidate     = 5;
   }
 
   message Busy {

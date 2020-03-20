@@ -91,6 +91,7 @@
     'movie.svg',
     'open_link.svg',
     'paperclip.svg',
+    'voicecall.svg',
     'play.svg',
     'playstore.png',
     'read.svg',

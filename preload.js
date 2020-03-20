@@ -19,7 +19,7 @@ const config = require('url').parse(window.location.toString(), true).query;
 
 let title = config.name;
 if (config.environment !== 'production') {
-  title += ` - ${config.environment}`;
+  // title += ` - ${config.environment}`;
 }
 if (config.appInstance) {
   title += ` - ${config.appInstance}`;

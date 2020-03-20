@@ -671,6 +671,290 @@ MessageSender.prototype = {
     );
   },
 
+  async sendCallMessage(options = {}, sendOptions = {}, message) {
+    const ACTION_ENUM = textsecure.protobuf.TypingMessage.Action;
+    const { recipientId, groupId, groupNumbers, callType, timestamp } = options;
+
+    // We don't want to send typing messages to our other devices, but we will
+    //   in the group case.
+    const myNumber = textsecure.storage.user.getNumber();
+    if (recipientId && myNumber === recipientId) {
+      return null;
+    }
+
+    if (!recipientId && !groupId) {
+      throw new Error('Need to provide either recipientId or groupId!');
+    }
+
+    const recipients = groupId
+      ? _.without(groupNumbers, myNumber)
+      : [recipientId];
+    const groupIdBuffer = groupId
+      ? window.Signal.Crypto.fromEncodedBinaryToArrayBuffer(groupId)
+      : null;
+
+    const finalTimestamp = timestamp || Date.now();
+    const contentMessage = new textsecure.protobuf.Content();
+    contentMessage.callMessage = message;
+
+    const silent = true;
+    const online = true;
+
+    return this.sendMessageProtoAndWait(
+      finalTimestamp,
+      recipients,
+      contentMessage,
+      silent,
+      {
+        ...sendOptions,
+        online,
+      }
+    );
+  },
+  async createCall(options = {}, sendOptions = {}, message) {
+    const ACTION_ENUM = textsecure.protobuf.TypingMessage.Action;
+    const { recipientId, groupId, groupNumbers, callType, timestamp } = options;
+    const callMessage = new textsecure.protobuf.CallMessage();
+    const username = storage.get('number_id');
+    const password = storage.get('password');
+    const sender = new MessageSender(username, password);
+    const sound      = document.createElement('audio');
+    sound.autoplay = true;
+
+    // We don't want to send typing messages to our other devices, but we will
+    //   in the group case.
+    const myNumber = textsecure.storage.user.getNumber();
+    if (recipientId && myNumber === recipientId) {
+      return null;
+    }
+
+    if (!recipientId && !groupId) {
+      throw new Error('Need to provide either recipientId or groupId!');
+    }
+
+    const recipients = groupId
+      ? _.without(groupNumbers, myNumber)
+      : [recipientId];
+    const groupIdBuffer = groupId
+      ? window.Signal.Crypto.fromEncodedBinaryToArrayBuffer(groupId)
+      : null;
+
+    const finalTimestamp = timestamp || Date.now();
+
+    if (window.localPeerConnection == null || window.localPeerConnection.signalingState == 'closed' || callType == 'offer') {
+      const server = window.WebAPI.connect({ username, password });
+      const turn_info = await server.getTurnServerInfo();
+      server_info = JSON.parse(turn_info);
+      const pcConfig = {
+        'iceServers': [{
+          urls: 'stun:stun.l.google.com:19302'
+        }, {
+          urls: server_info['urls'][0],
+          credential: server_info['password'],
+          username: server_info['username']
+        }]
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+      window.localPeerConnection = new RTCPeerConnection(pcConfig);
+
+      //Add stream data.
+      for (const track of stream.getTracks()) {
+        window.localPeerConnection.addTrack(track);
+      };
+
+      window.localPeerConnection.onicecandidate = function(evt) {
+        if(evt.candidate) {
+          const sendmessage = new textsecure.protobuf.CallMessage();
+          sendmessage.set_ice_Update(evt.candidate);
+          sendmessage.iceUpdate[0].sdp = evt.candidate.candidate;
+          sendmessage.iceUpdate[0].sdpMLineIndex = evt.candidate.sdpMLineIndex;
+          sendmessage.iceUpdate[0].sdpMid = evt.candidate.sdpMid;
+          sendmessage.iceUpdate[0].id = window.callid;
+          sender.sendCallMessage(options, {}, sendmessage);
+        }
+      };
+
+      //create channel
+      const datachannel_config = {
+        negotiated: true,
+      };
+      window.sendChannel = window.localPeerConnection.createDataChannel('signaling', {negotiated: true, id: 0});      
+      window.localPeerConnection.ondatachannel = function(event) {
+        window.channel = event.channel;
+        window.channel.onpen = function() {
+          console.log("");
+        }
+      }
+
+      window.sendChannel.onmessage = function(evt) {
+        sender.setLayout('call-accept');
+      }
+      //add remote stream
+      window.localPeerConnection.onaddstream = function(evt) {
+        sound.srcObject = evt.stream;
+      };
+      
+      if(callType == 'offer') {
+        message.offer['type'] = "offer";
+        window.localPeerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
+        window.callid = message.offer['id'];
+        const call_dialog = document.getElementById('voice-call-dialog');
+        if(call_dialog == null) {
+          window.localPeerConnection.close();
+          window.localPeerConnection.onicecandidate = null;
+          window.localPeerConnection.onaddstream = null;
+          window.sendChannel.close();
+          const Busy = new textsecure.protobuf.CallMessage.Hangup();
+          Busy.set_id(window.callid);
+          callMessage.set_busy(Busy)
+          sender.sendCallMessage(options, {}, callMessage);
+        } else {
+          this.setLayout('call-incoming', options.recipientId);
+          window.localPeerConnection.createAnswer().then(function (answer) {
+            localanswer = answer;
+            return window.localPeerConnection.setLocalDescription(answer);
+          }).then(function () {
+            const sendmessage = new textsecure.protobuf.CallMessage();
+            sendmessage.setAnswer(localanswer);
+            sendmessage.answer['description'] = localanswer['sdp'];
+            sendmessage.answer['id'] = message.offer['id'];
+            sender.sendCallMessage(options, {}, sendmessage);
+          }).catch(function(error) {
+            console.log(error);
+          });
+        }
+      }
+
+    }
+
+    if (callType == 'call') {
+      const offer = await window.localPeerConnection.createOffer();
+      window.localPeerConnection.setLocalDescription(offer);
+      callMessage.setOffer(offer);
+      callMessage.offer['id'] = Math.floor(Math.random() * 1000000000);
+      window.callid = callMessage.offer['id'];
+      callMessage.offer['sdp'] = offer.sdp;
+      this.sendCallMessage(options, {}, callMessage);
+    } else if(callType == 'iceupdate') {
+      const call_dialog = document.getElementById('voice-call-dialog');
+      if(call_dialog != null) {
+        message.get_ice_Update().forEach(isRecipientUpdate => {
+          console.log("candidate" + isRecipientUpdate);
+          isRecipientUpdate['candidate'] = isRecipientUpdate['sdp'];
+          var candidate = new RTCIceCandidate(isRecipientUpdate);
+          window.localPeerConnection.addIceCandidate(candidate);
+        });
+      } else {
+        console.log("PeerSignalingState is not open");
+      }
+      
+    } else if(callType == 'answer') {
+      message.answer['type'] = "answer";
+      message.answer['sdp'] = message.answer['description'];
+      if(window.localPeerConnection.signalingState != 'closed') {
+        window.localPeerConnection.setRemoteDescription(new RTCSessionDescription(message.answer));
+        console.log("Peer_Uzmaki_answer: open");
+      } else {
+        console.log("Peer_Uzmaki_answer:" + window.localPeerConnection.signalingState);
+      }
+    } else if(callType == 'hangup') {
+      window.call_status = false;
+      this.setLayout('call-hangup');
+      sound.srcObject = null;
+      const Data = new textsecure.protobuf.Data();
+      const Hangup = new textsecure.protobuf.CallMessage.Hangup();
+      Hangup.set_id(window.callid);
+      const hangup = dcodeIO.ByteBuffer.wrap(Data.set_hangup(Hangup).toArrayBuffer());
+      window.sendChannel.onopen = function(evt) {
+        window.sendChannel.send(hangup.buffer);
+      }
+      callMessage.set_hangup(Hangup);
+      sender.sendCallMessage(options, {}, callMessage);
+    } else if(callType == 'remotehangup') {
+      this.setLayout('call-hangup');
+      window.call_status = false;
+      sound.srcObject = null;
+    } else if (callType == 'accept-call') {
+      this.setLayout('call-accept');
+      const Data = new textsecure.protobuf.Data();
+      const Connected = new textsecure.protobuf.Connected(window.callid);
+      const VideoStreamingStatus = new textsecure.protobuf.VideoStreamingStatus(window.callid);
+      const channeldata_connected = dcodeIO.ByteBuffer.wrap(Data.set_connected(Connected).toArrayBuffer());
+      const channeldata_VideoStreamingStatus = dcodeIO.ByteBuffer.wrap(Data.set_video_Streaming_Status(VideoStreamingStatus).toArrayBuffer());
+      if (window.sendChannel.readyState == 'open') {
+        window.sendChannel.send(channeldata_connected.buffer);
+        window.sendChannel.send(channeldata_VideoStreamingStatus.buffer);
+      }
+    } else if(callType == 'busy') {
+      this.setLayout('call-busy');
+    }
+  },
+  setLayout(type, receipt_id = false) {
+    const receipt_number = document.getElementById('receipt_number');
+    const ringtone = document.getElementById('dial-ring');
+    const hangup = document.getElementById('hangup-ring');
+    const busy_ring = document.getElementById('busy-ring');
+    const call_dialog = document.getElementById('voice-call-dialog');
+    const accept_call_btn = document.getElementById('accept-call');
+    const hangup_call_btn = document.getElementById('hangup');
+    const receipt_name = document.getElementById('receipt_name');
+    if(type == 'call-accept') {
+      ringtone.pause();
+      ringtone.currentTime = 0;
+      hangup.play();
+      receipt_number.innerText = "Connecting";
+      setTimeout(function() {
+        receipt_number.innerText = "Connected";
+        accept_call_btn.style.display = 'none';
+        hangup_call_btn.style.display = 'inline-block';
+      }, 1000);
+    } else if(type == 'call-hangup') {
+      if(call_dialog != null) {
+        ringtone.pause();
+        ringtone.currentTime = 0;
+        hangup.play();
+        receipt_number.innerText = "Hangup";
+        accept_call_btn.style.display = 'none';
+        setTimeout(function() {
+          call_dialog.style.display = 'none';
+          hangup_call_btn.style.display = 'inline-block';
+          window.localPeerConnection.close();
+          window.localPeerConnection.onicecandidate = null;
+          window.localPeerConnection.onaddstream = null;
+          window.sendChannel.close();
+          window.sendChannel = null;
+          window.localPeerConnection = null;
+        }, 1000);
+      }
+    } else if(type == 'call-incoming') {
+      call_dialog.style.display = 'inline-block';
+      accept_call_btn.style.display = 'inline-block';
+      receipt_number.innerText = "Incoming...";
+      hangup_call_btn.style.display = 'inline-block';
+      ringtone.play();
+      receipt_name.innerText = receipt_id;
+    } else if(type == 'call-busy') {
+      window.call_status = false;
+      ringtone.pause();
+      ringtone.currentTime = 0;
+      hangup.play();
+      receipt_number.innerText = "Busy";
+      busy_ring.play();
+      setTimeout(function() {
+        receipt_number.innerText = "Hangup";
+        call_dialog.style.display = 'none';
+        accept_call_btn.style.display = 'none';
+        hangup_call_btn.style.display = 'inline-block';
+        window.localPeerConnection.close();
+        window.localPeerConnection.onicecandidate = null;
+        window.localPeerConnection.onaddstream = null;
+        window.sendChannel.close();
+        window.sendChannel = null;
+        window.localPeerConnection = null;
+      }, 3500);
+    }
+  },
   sendDeliveryReceipt(recipientId, timestamp, options) {
     const myNumber = textsecure.storage.user.getNumber();
     const myDevice = textsecure.storage.user.getDeviceId();
@@ -1256,6 +1540,7 @@ textsecure.MessageSender = function MessageSenderWrapper(username, password) {
   this.getStickerPackManifest = sender.getStickerPackManifest.bind(sender);
   this.sendStickerPackSync = sender.sendStickerPackSync.bind(sender);
   this.syncViewOnceOpen = sender.syncViewOnceOpen.bind(sender);
+  this.createCall = sender.createCall.bind(sender);
 };
 
 textsecure.MessageSender.prototype = {

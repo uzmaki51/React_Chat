@@ -243,6 +243,7 @@
 }
 
 .bottom-bar {
+  border-top: 1px solid #cccccc;
   box-sizing: content-box;
   $button-width: 36px;
 
@@ -311,8 +312,7 @@
   .flex {
     display: flex;
     flex-direction: row;
-    // background-color: #eeeeee;
-    // padding: 10px;
+    padding: 10px;
 
     .send-message {
       flex-grow: 1;

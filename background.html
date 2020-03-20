@@ -1,29 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset='utf-8'>
+  <!-- <meta charset='utf-8'>
   <meta content='width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0' name='viewport'>
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="description" content="">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none';
-            child-src 'self';
-            connect-src 'self' https: wss:;
-            font-src 'self';
-            form-action 'self';
-            frame-src 'none';
-            img-src 'self' blob: data:;
-            media-src 'self' blob:;
-            object-src 'none';
-            script-src 'self';
-            style-src 'self' 'unsafe-inline';"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width">
   <title>SPaycle</title>
   <link href='images/icon_128.png' rel='shortcut icon'>
   <link href="stylesheets/manifest.css" rel="stylesheet" type="text/css" />
-  <link href="node_modules/draft-js/dist/Draft.css" rel="stylesheet" type="text/css" />
-
+  <link href="node_modules/draft-js/dist/Draft.css" rel="stylesheet" type="text/css" />  
   <!--
     When making changes to these templates, be sure to update test/index.html as well
   -->
@@ -125,11 +113,41 @@
                     <button class='paperclip thumbnail'></button>
                     <input type='file' class='file-input' multiple='multiple'>
                 </div>
+                <div class='voice-call'>
+                  <button class='voice-call-button thumbnail' id="voice-call"></button>
+                </div>
+                <div class="voice-call-dialog" id="voice-call-dialog" style="display: none; z-index: 1000">
+                      <img class="avatar-png" src="images/ic_contact_picture_large.png"></img>
+                      <h2 id="receipt_name">--- ---- ----</h2>
+                      <h4 id="receipt_number">Calling...</h4>
+                      <div class="content" id="slider">
+                        <div class="container">
+                          <span class='dot'></span>
+                          <span class='dot'></span>
+                          <span class='dot'></span>
+                        </div>
+                      </div>
+                      <audio id="dial-ring" loop controls style="display: none">
+                        <source src="images/phone_ringing_sound.mp3" type="audio/mpeg">
+                      </audio>
+                      <audio id="hangup-ring" controls style="display: none">
+                        <source src="images/hangup.mp3" type="audio/mpeg">
+                      </audio>
+                      <audio id="busy-ring" controls style="display: none">
+                        <source src="images/busy.mp3" type="audio/mpeg">
+                      </audio>
+                      <audio id="ring-record" controls style="display: none"></audio>
+                      <div class="call-answer-refuse">
+                        <img clas="hangup" id="accept-call" style="margin-right: 60px; width: 40px; display: none" src="images/accept-call.png">
+                        <img clas="hangup" id="hangup" style="width: 40px;" src="images/hangup-call.png">
+                      </div>
+                    </div>
               </div>
             </form>
           </div>
+        </div>
       </div>
-    </div>
+      
   </script>
 
   <script type='text/x-tmpl-mustache' id='message-list'>
@@ -467,7 +485,7 @@
       </div>
     </div>
   </script>
-
+  
   <script type='text/javascript' src='js/components.js'></script>
   <script type='text/javascript' src='js/reliable_trigger.js'></script>
   <script type='text/javascript' src='js/database.js'></script>
@@ -537,7 +555,6 @@
       <div class='message'></div>
     </div>
   </div>
-
   <script type='text/javascript' src='js/background.js'></script>
 </body>
 </html>

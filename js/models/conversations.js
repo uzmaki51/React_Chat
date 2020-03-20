@@ -236,6 +236,25 @@
       );
     },
 
+    createCall(callType) {
+      const groupId = !this.isPrivate() ? this.id : null;
+      const recipientId = this.isPrivate() ? this.id : null;
+      const groupNumbers = this.getRecipients();
+
+      const sendOptions = this.getSendOptions();
+      this.wrapSend(
+        textsecure.messaging.createCall(
+          {
+            recipientId,
+            groupId,
+            groupNumbers,
+            callType
+          },
+          sendOptions
+        )
+      );
+    },
+
     async cleanup() {
       await window.Signal.Types.Conversation.deleteExternalFiles(
         this.attributes,
@@ -907,7 +926,7 @@
         const now = Date.now();
 
         window.log.info(
-          'Sending message to conversation',
+          'Sending message to conversation',  
           this.idForLogging(),
           'with timestamp',
           now

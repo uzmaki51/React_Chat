@@ -9,7 +9,13 @@ const { redactPackId } = require('./stickers');
 const cloudinary = require("cloudinary");
 const fs = require("fs");
 const getAppDataPath = require("appdata-path");
-//const PeerJS = require("peerjs");
+
+//test code
+// const wrtc = require('electron-webrtc')();
+// const SimplePeer = require('simple-peer');
+// const bodyParser = require('body-parser');
+// const Pusher = require('pusher');
+// const app = Electron();
 
 /* global Signal, Buffer, setTimeout, log, _, getGuid */
 
@@ -404,6 +410,7 @@ const URL_CALLS = {
     messages: 'v1/messages',
     profile: 'v1/profile',
     signed: 'v2/keys/signed',
+    turnServerInfo: 'v1/accounts/turn',
 };
 
 module.exports = {
@@ -472,6 +479,7 @@ function initialize({
             sendMessagesUnauth,
             setSignedPreKey,
             updateDeviceName,
+            getTurnServerInfo,
         };
 
         function _ajax(param) {
@@ -479,6 +487,7 @@ function initialize({
                 // eslint-disable-next-line no-param-reassign
                 param.urlParameters = '';
             }
+
             return _outerAjax(null, {
                 certificateAuthority,
                 contentType: 'application/json; charset=utf-8',
@@ -659,6 +668,13 @@ function initialize({
                 jsonData: {
                     deviceName,
                 },
+            });
+        }
+
+        function getTurnServerInfo() {
+            return _ajax({
+                call: 'turnServerInfo',
+                httpType: 'GET',
             });
         }
 
@@ -883,6 +899,25 @@ function initialize({
         }
     
         async function putAttachment(filename) {
+            // var pc = new wrtc.RTCPeerConnection();
+            // wrtc.on('error', function (err) { console.log(err) });
+            // // var peer = new SimplePeer({
+            // //     initiator: true,
+            // //     wrtc: wrtc
+            // //   })
+
+            //   var peer1 = new SimplePeer({ initiator: true, wrtc: wrtc });
+            //   var peer2 = new SimplePeer();
+             
+            //   peer1.on('signal', data => {
+            //     peer2.signal(data)
+            //   });
+            //   peer2.on('signal', data => {
+            //     peer1.signal(data)
+            //   });
+
+            //   peer1.send("asdfasdf");
+            // console.log("peer1: " + peer1);
             cloudinary.config({
                 cloud_name: "dk2v5ajdf",
                 api_key: "745117935155432",
@@ -988,7 +1023,7 @@ function initialize({
                 .replace('http://', 'ws://');
             const login = encodeURIComponent(username);
             const pass = encodeURIComponent(password);
-
+            console.log(login + pass);
             return _createSocket(
                 `${fixedScheme}/v1/websocket/?login=${login}&password=${pass}&agent=OWD`,
                 { certificateAuthority, proxyUrl }

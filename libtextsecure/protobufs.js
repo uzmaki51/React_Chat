@@ -36,6 +36,8 @@
   loadProtoBufs('SubProtocol.proto');
   loadProtoBufs('DeviceMessages.proto');
   loadProtoBufs('Stickers.proto');
+  loadProtoBufs('WebRtcData.proto');
+
 
   // Just for encrypting device names
   loadProtoBufs('DeviceName.proto');

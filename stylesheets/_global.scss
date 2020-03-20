@@ -142,7 +142,6 @@ a {
   }
 }
 
-/*
 .file-input {
   position: relative;
   .voice-call {
@@ -163,7 +162,7 @@ a {
       display: inline-block;
       width: 20px;;
       height: 20px;
-      background-image: url('../images/voicecall.png');
+      background-image: url('../images/voicecall.svg');
       background-size: cover;
       background-position: center center;
       background-repeat: no-repeat;
@@ -175,7 +174,7 @@ a {
     }
   }
 }
-*/
+
 .group-member-list,
 .new-group-update {
   .summary {

@@ -90,6 +90,7 @@
         'send-message': i18n('sendMessage'),
       };
     },
+    
     initialize(options) {
       this.listenTo(this.model, 'destroy', this.stopListening);
       this.listenTo(this.model, 'change:verified', this.onVerifiedChange);
@@ -239,7 +240,9 @@
       'lazyScroll .message-list': 'onLazyScroll',
 
       'click button.paperclip': 'onChooseAttachment',
-      //'click button.voice-call-button': 'onVoiceCall',
+      'click button.voice-call-button': 'onVoiceCall',
+      'click #hangup': 'onHangup',
+      'click img#accept-call': 'onAccept',
       'change input.file-input': 'onChoseAttachment',
 
       dragover: 'onDragOver',
@@ -358,33 +361,54 @@
 
       this.$('input.file-input').click();
     },
-    // onVoiceCall(e) {
-    //   if (e) {
-    //     e.stopPropagation();
-    //     e.preventDefault();
-    //   }
-  
-    // var lastPeerId = null;
-    // var peer = null; // own peer object
-    // var conn = null;
+    async onVoiceCall(e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
 
-    // // peer = new Peer(null, {
-    // //     debug: 2
-    // // });
+      if ( window.call_status == false || window.call_status == undefined) {
+        window.call_status = true;
+        document.getElementById('receipt_name').innerText = this.model.id;
+        const voice_call_dialog = document.getElementById('voice-call-dialog');
+        voice_call_dialog.style.display = "block";
+        const ringtone = document.getElementById('dial-ring');
+        ringtone.play();
+        const receipt_number = document.getElementById('receipt_number');
+        receipt_number.innerText = "Calling...";
+        const slider = document.getElementById('slider');
+        slider.style.display = 'block';
+        this.model.createCall('call');
+      }
+    },
+    async onHangup(e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      
+      this.model.createCall('hangup');
+    },
+    async onAccept(e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
 
-    // // peer.on('open', function (id) {
-    // //     // Workaround for peer.reconnect deleting previous id
-    // //     if (peer.id === null) {
-    // //         console.log('Received null id from peer open');
-    // //         peer.id = lastPeerId;
-    // //     } else {
-    // //         lastPeerId = peer.id;
-    // //     }
+      const ringtone = document.getElementById('dial-ring');
+      ringtone.pause();
+      ringtone.currentTime = 0;
+      const hangup = document.getElementById('hangup-ring');
+      hangup.play();
+      const hangup_btn = document.getElementById('hangup');
+      hangup_btn.style.display = 'inline-block';
 
-    // //     console.log('ID: ' + peer.id);
-    // // });
-    //   this.$('.voice-call-dialog').show();
-    // },
+      const accept_call = document.getElementById('accept-call');
+      accept_call.style.display = 'none';
+
+      this.model.createCall('accept-call');
+    }
+    ,
     async onChoseAttachment() {
       const fileField = this.$('input.file-input');
       const files = fileField.prop('files');
