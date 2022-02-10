@@ -86,7 +86,7 @@
     "mustache": "2.3.0",
     "node-fetch": "https://github.com/scottnonnenberg-signal/node-fetch.git#3e5f51e08c647ee5f20c43b15cf2d352d61c36b4",
     "node-gyp": "5.0.3",
-    "node-sass": "^4.13.1",
+    "node-sass": "^7.0.0",
     "os-locale": "^4.0.0",
     "p-map": "2.1.0",
     "p-queue": "5.0.0",
