@@ -92,7 +92,7 @@
     "p-queue": "5.0.0",
     "peerjs": "^1.2.0",
     "pify": "3.0.0",
-    "protobufjs": "6.8.6",
+    "protobufjs": "6.11.3",
     "proxy-agent": "3.0.3",
     "pusher": "^3.0.0",
     "qs": "6.5.1",
